@@ -1,3 +1,8 @@
-require_relative 'lib/torb/web'
+require './config/environment'
 
-run Torb::Web
+use Torb::ActionsController
+use Torb::AdminController
+use Torb::EventsController
+use Torb::UsersController
+
+run Torb::ApplicationController
