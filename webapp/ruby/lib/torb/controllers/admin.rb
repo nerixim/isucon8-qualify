@@ -1,5 +1,5 @@
 module Torb
-  class AdminController
+  class AdminController < ApplicationController
     get '/admin/' do
       @administrator = get_login_administrator
       @events = get_events(->(_) { true }) if @administrator

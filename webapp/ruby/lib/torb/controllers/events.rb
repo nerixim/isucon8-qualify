@@ -1,5 +1,5 @@
 module Torb
-  class EventsController
+  class EventsController < ApplicationController
     get '/api/events' do
       events = get_events.map(&method(:sanitize_event))
       events.to_json
