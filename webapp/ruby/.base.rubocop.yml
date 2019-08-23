@@ -1,0 +1,174 @@
+Layout/FirstArrayElementLineBreak:
+  Description: >-
+    This cop checks for a line break before the first element in a multi-line array.
+  Enabled: true
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/FirstArrayElementLineBreak'
+
+Layout/FirstHashElementLineBreak:
+  Description: >-
+    This cop checks for a line break before the first element in a multi-line hash.
+  Enabled: true
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/FirstHashElementLineBreak'
+
+Layout/FirstMethodArgumentLineBreak:
+  Description: This cop checks for a line break before the first argument in a multi-line method call.
+  Enabled: true
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/FirstMethodArgumentLineBreak'
+
+Layout/FirstMethodParameterLineBreak:
+  Description: >-
+    This cop checks for a line break before the first parameter in a multi-line method parameter definition.
+  Enabled: true
+  StyleGuide: 'https://www.rubydoc.info/github/bbatsov/RuboCop/RuboCop/Cop/Layout/FirstMethodParameterLineBreak'
+
+Layout/MultilineArrayBraceLayout:
+  Description: >-
+    This cop checks that the closing brace in an array literal is either on the same line as the last array element or on a new line.
+  EnforcedStyle: new_line
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/MultilineArrayBraceLayout'
+
+Layout/MultilineArrayLineBreaks:
+  Description: >-
+    This cop ensures that each item in a multi-line array starts on a separate line.
+  Enabled: true
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/MultilineArrayLineBreaks'
+
+Layout/MultilineAssignmentLayout:
+  Description: >-
+    This cop checks whether the multiline assignments have a newline after the assignment operator.
+  Enabled: true
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/MultilineAssignmentLayout'
+
+Layout/MultilineHashBraceLayout:
+  Description: >-
+    This cop checks that the closing brace in a hash literal is either on the same line as the last hash element, or a new line.
+  EnforcedStyle: new_line
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/MultilineHashBraceLayout'
+
+Layout/MultilineHashKeyLineBreaks:
+  Description: >-
+    This cop ensures that each key in a multi-line hash starts on a separate line.
+  Enabled: true
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/MultilineHashKeyLineBreaks'
+
+Layout/MultilineMethodArgumentLineBreaks:
+  Description: >-
+    This cop ensures that each argument in a multi-line method call starts on a separate line.
+  Enabled: true
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/MultilineMethodArgumentLineBreaks'
+
+Layout/MultilineMethodCallBraceLayout:
+  Description: >-
+    This cop checks that the closing brace in a method call is either on the same line as the last method argument, or a new line.
+  EnforcedStyle: new_line
+  StyleGuide: 'https://www.rubydoc.info/gems/rubocop/RuboCop/Cop/Layout/MultilineMethodCallBraceLayout'
+
+Layout/MultilineMethodDefinitionBraceLayout:
+  Description: >-
+    This cop checks that the closing brace in a method definition is
+    either on the same line as the last method parameter, or a new line.
+  EnforcedStyle: new_line
+  StyleGuide: 'https://www.rubydoc.info/github/bbatsov/RuboCop/RuboCop/Cop/Layout/MultilineMethodDefinitionBraceLayout'
+
+Metrics/AbcSize:
+  Description: >-
+    A calculated magnitude based on number of assignments, branches, and
+    conditions.
+  Enabled: true
+  Exclude:
+    - config/**/*
+    - db/migrate/*
+  Max: 20
+
+Metrics/BlockLength:
+  Exclude:
+    - spec/**/*
+
+Metrics/LineLength:
+  Description: Limit lines to 120 characters.
+  Exclude:
+    - Gemfile
+    - config/**/*
+    - db/migrate/*
+    - spec/**/*
+  Max: 120
+  StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#80-character-limits'
+
+Metrics/MethodLength:
+  Description: Avoid methods longer than 20 lines of code.
+  Enabled: true
+  Exclude:
+    - spec/**/*
+    - db/migrate/*
+    - spec/**/*
+  Max: 20
+  StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#short-methods'
+
+Style/AsciiComments:
+  Description: Use only ascii symbols in comments.
+  Enabled: false
+  StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#english-comments'
+
+Style/Documentation:
+  Description: Document classes and non-namespace modules.
+  Enabled: false
+
+Style/FrozenStringLiteralComment:
+  Description: >-
+    Add the frozen_string_literal comment to the top of files to help transition
+    from Ruby 2.3.0 to Ruby 3.0.
+  Enabled: false
+
+Style/IfUnlessModifier:
+  Description: Favor modifier if/unless usage when you have a single-line body.
+  Enabled: false
+  StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#if-as-a-modifier'
+
+Style/MixinUsage:
+  Description: |
+    include is used at the top level. Use inside class or module.
+  Enabled: true
+  Exclude:
+    - bin/*
+
+Style/SymbolArray:
+  Description: |
+    Use [] for an array of symbols.
+  EnforcedStyle: brackets
+  StyleGuide: >-
+    https://www.rubydoc.info/github/bbatsov/RuboCop/RuboCop/Cop/Style/SymbolArray
+
+Style/TrailingCommaInArguments:
+  Description: Checks for trailing comma in argument lists.
+  Enabled: true
+  EnforcedStyleForMultiline: comma
+  StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#no-trailing-array-commas'
+  SupportedStylesForMultiline:
+    - comma
+    - consistent_comma
+    - no_comma
+
+Style/TrailingCommaInArrayLiteral:
+  Description: Checks for trailing comma in array literals.
+  Enabled: true
+  EnforcedStyleForMultiline: comma
+  StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#no-trailing-array-commas'
+  SupportedStylesForMultiline:
+    - comma
+    - consistent_comma
+    - no_comma
+
+Style/TrailingCommaInHashLiteral:
+  Description: Checks for trailing comma in hash literals.
+  Enabled: true
+  EnforcedStyleForMultiline: comma
+  StyleGuide: 'https://github.com/bbatsov/ruby-style-guide#no-trailing-array-commas'
+  SupportedStylesForMultiline:
+    - comma
+    - consistent_comma
+    - no_comma
+
+Style/WordArray:
+  Description: This cop can check for array literals made up of word-like strings, that are not using the %w() syntax.
+  EnforcedStyle: brackets
+  StyleGuide: 'https://github.com/rubocop-hq/ruby-style-guide#percent-w'
