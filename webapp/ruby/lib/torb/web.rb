@@ -18,21 +18,21 @@ module Torb
 
     set :erb, escape_html: true
 
-    set :login_required, ->(value) do
-      condition do
-        if value && !get_login_user
-          halt_with_error 401, 'login_required'
-        end
-      end
-    end
+    set :login_required,
+        lambda { |value|
+          condition do
+            halt_with_error 401, 'login_required' if value && !get_login_user
+          end
+        }
 
-    set :admin_login_required, ->(value) do
-      condition do
-        if value && !get_login_administrator
-          halt_with_error 401, 'admin_login_required'
-        end
-      end
-    end
+    set :admin_login_required,
+        lambda { |value|
+          condition do
+            if value && !get_login_administrator
+              halt_with_error 401, 'admin_login_required'
+            end
+          end
+        }
 
     before '/api/*|/admin/api/*' do
       content_type :json
@@ -59,13 +59,14 @@ module Torb
         db.query('BEGIN')
         begin
           event_ids = db.query('SELECT * FROM events ORDER BY id ASC').select(&where).map { |e| e['id'] }
-          events = event_ids.map do |event_id|
-            event = get_event(event_id)
-            event['sheets'].each { |sheet| sheet.delete('detail') }
-            event
-          end
+          events =
+            event_ids.map do |event_id|
+              event = get_event(event_id)
+              event['sheets'].each { |sheet| sheet.delete('detail') }
+              event
+            end
           db.query('COMMIT')
-        rescue
+        rescue StandardError
           db.query('ROLLBACK')
         end
 
@@ -80,7 +81,7 @@ module Torb
         event['total']   = 0
         event['remains'] = 0
         event['sheets'] = {}
-        %w[S A B C].each do |rank|
+        ['S', 'A', 'B', 'C'].each do |rank|
           event['sheets'][rank] = { 'total' => 0, 'remains' => 0, 'detail' => [] }
         end
 
@@ -114,7 +115,7 @@ module Torb
       end
 
       def sanitize_event(event)
-        sanitized = event.dup  # shallow clone
+        sanitized = event.dup # shallow clone
         sanitized.delete('price')
         sanitized.delete('public')
         sanitized.delete('closed')
@@ -124,12 +125,14 @@ module Torb
       def get_login_user
         user_id = session[:user_id]
         return unless user_id
+
         db.xquery('SELECT id, nickname FROM users WHERE id = ?', user_id).first
       end
 
       def get_login_administrator
         administrator_id = session['administrator_id']
         return unless administrator_id
+
         db.xquery('SELECT id, nickname FROM administrators WHERE id = ?', administrator_id).first
       end
 
@@ -148,7 +151,7 @@ module Torb
       def render_report_csv(reports)
         reports = reports.sort_by { |report| report[:sold_at] }
 
-        keys = %i[reservation_id event_id rank num price user_id sold_at canceled_at]
+        keys = [:reservation_id, :event_id, :rank, :num, :price, :user_id, :sold_at, :canceled_at]
         body = keys.join(',')
         body << "\n"
         reports.each do |report|
@@ -156,10 +159,10 @@ module Torb
           body << "\n"
         end
 
-        headers({
-          'Content-Type'        => 'text/csv; charset=UTF-8',
+        headers(
+          'Content-Type' => 'text/csv; charset=UTF-8',
           'Content-Disposition' => 'attachment; filename="report.csv"',
-        })
+        )
         body
       end
     end
@@ -171,7 +174,7 @@ module Torb
     end
 
     get '/initialize' do
-      system "../../db/init.sh"
+      system '../../db/init.sh'
 
       status 204
     end
@@ -192,7 +195,7 @@ module Torb
         db.xquery('INSERT INTO users (login_name, pass_hash, nickname) VALUES (?, SHA2(?, 256), ?)', login_name, password, nickname)
         user_id = db.last_id
         db.query('COMMIT')
-      rescue => e
+      rescue StandardError => e
         warn "rollback by: #{e}"
         db.query('ROLLBACK')
         halt_with_error
@@ -204,43 +207,42 @@ module Torb
 
     get '/api/users/:id', login_required: true do |user_id|
       user = db.xquery('SELECT id, nickname FROM users WHERE id = ?', user_id).first
-      if user['id'] != get_login_user['id']
-        halt_with_error 403, 'forbidden'
-      end
+      halt_with_error 403, 'forbidden' if user['id'] != get_login_user['id']
 
       rows = db.xquery('SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id WHERE r.user_id = ? ORDER BY IFNULL(r.canceled_at, r.reserved_at) DESC LIMIT 5', user['id'])
-      recent_reservations = rows.map do |row|
-        event = get_event(row['event_id'])
-        price = event['sheets'][row['sheet_rank']]['price']
-        event.delete('sheets')
-        event.delete('total')
-        event.delete('remains')
+      recent_reservations =
+        rows.map do |row|
+          event = get_event(row['event_id'])
+          price = event['sheets'][row['sheet_rank']]['price']
+          event.delete('sheets')
+          event.delete('total')
+          event.delete('remains')
 
-        {
-          id:          row['id'],
-          event:       event,
-          sheet_rank:  row['sheet_rank'],
-          sheet_num:   row['sheet_num'],
-          price:       price,
-          reserved_at: row['reserved_at'].to_i,
-          canceled_at: row['canceled_at']&.to_i,
-        }
-      end
+          {
+            id: row['id'],
+            event: event,
+            sheet_rank: row['sheet_rank'],
+            sheet_num: row['sheet_num'],
+            price: price,
+            reserved_at: row['reserved_at'].to_i,
+            canceled_at: row['canceled_at']&.to_i,
+          }
+        end
 
       user['recent_reservations'] = recent_reservations
       user['total_price'] = db.xquery('SELECT IFNULL(SUM(e.price + s.price), 0) AS total_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.user_id = ? AND r.canceled_at IS NULL', user['id']).first['total_price']
 
       rows = db.xquery('SELECT event_id FROM reservations WHERE user_id = ? GROUP BY event_id ORDER BY MAX(IFNULL(canceled_at, reserved_at)) DESC LIMIT 5', user['id'])
-      recent_events = rows.map do |row|
-        event = get_event(row['event_id'])
-        event['sheets'].each { |_, sheet| sheet.delete('detail') }
-        event
-      end
+      recent_events =
+        rows.map do |row|
+          event = get_event(row['event_id'])
+          event['sheets'].each { |_, sheet| sheet.delete('detail') }
+          event
+        end
       user['recent_events'] = recent_events
 
       user.to_json
     end
-
 
     post '/api/actions/login' do
       login_name = body_params['login_name']
@@ -293,7 +295,7 @@ module Torb
           db.xquery('INSERT INTO reservations (event_id, sheet_id, user_id, reserved_at) VALUES (?, ?, ?, ?)', event['id'], sheet['id'], user['id'], Time.now.utc.strftime('%F %T.%6N'))
           reservation_id = db.last_id
           db.query('COMMIT')
-        rescue => e
+        rescue StandardError => e
           db.query('ROLLBACK')
           warn "re-try: rollback by #{e}"
           next
@@ -329,7 +331,7 @@ module Torb
 
         db.xquery('UPDATE reservations SET canceled_at = ? WHERE id = ?', Time.now.utc.strftime('%F %T.%6N'), reservation['id'])
         db.query('COMMIT')
-      rescue => e
+      rescue StandardError => e
         warn "rollback by: #{e}"
         db.query('ROLLBACK')
         halt_with_error
@@ -379,7 +381,7 @@ module Torb
         db.xquery('INSERT INTO events (title, public_fg, closed_fg, price) VALUES (?, ?, 0, ?)', title, public, price)
         event_id = db.last_id
         db.query('COMMIT')
-      rescue
+      rescue StandardError
         db.query('ROLLBACK')
       end
 
@@ -412,7 +414,7 @@ module Torb
       begin
         db.xquery('UPDATE events SET public_fg = ?, closed_fg = ? WHERE id = ?', public, closed, event['id'])
         db.query('COMMIT')
-      rescue
+      rescue StandardError
         db.query('ROLLBACK')
       end
 
@@ -424,36 +426,38 @@ module Torb
       event = get_event(event_id)
 
       reservations = db.xquery('SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id WHERE r.event_id = ? ORDER BY reserved_at ASC FOR UPDATE', event['id'])
-      reports = reservations.map do |reservation|
-        {
-          reservation_id: reservation['id'],
-          event_id:       event['id'],
-          rank:           reservation['sheet_rank'],
-          num:            reservation['sheet_num'],
-          user_id:        reservation['user_id'],
-          sold_at:        reservation['reserved_at'].iso8601,
-          canceled_at:    reservation['canceled_at']&.iso8601 || '',
-          price:          reservation['event_price'] + reservation['sheet_price'],
-        }
-      end
+      reports =
+        reservations.map do |reservation|
+          {
+            reservation_id: reservation['id'],
+            event_id: event['id'],
+            rank: reservation['sheet_rank'],
+            num: reservation['sheet_num'],
+            user_id: reservation['user_id'],
+            sold_at: reservation['reserved_at'].iso8601,
+            canceled_at: reservation['canceled_at']&.iso8601 || '',
+            price: reservation['event_price'] + reservation['sheet_price'],
+          }
+        end
 
       render_report_csv(reports)
     end
 
     get '/admin/api/reports/sales', admin_login_required: true do
       reservations = db.query('SELECT r.*, s.rank AS sheet_rank, s.num AS sheet_num, s.price AS sheet_price, e.id AS event_id, e.price AS event_price FROM reservations r INNER JOIN sheets s ON s.id = r.sheet_id INNER JOIN events e ON e.id = r.event_id ORDER BY reserved_at ASC FOR UPDATE')
-      reports = reservations.map do |reservation|
-        {
-          reservation_id: reservation['id'],
-          event_id:       reservation['event_id'],
-          rank:           reservation['sheet_rank'],
-          num:            reservation['sheet_num'],
-          user_id:        reservation['user_id'],
-          sold_at:        reservation['reserved_at'].iso8601,
-          canceled_at:    reservation['canceled_at']&.iso8601 || '',
-          price:          reservation['event_price'] + reservation['sheet_price'],
-        }
-      end
+      reports =
+        reservations.map do |reservation|
+          {
+            reservation_id: reservation['id'],
+            event_id: reservation['event_id'],
+            rank: reservation['sheet_rank'],
+            num: reservation['sheet_num'],
+            user_id: reservation['user_id'],
+            sold_at: reservation['reserved_at'].iso8601,
+            canceled_at: reservation['canceled_at']&.iso8601 || '',
+            price: reservation['event_price'] + reservation['sheet_price'],
+          }
+        end
 
       render_report_csv(reports)
     end
