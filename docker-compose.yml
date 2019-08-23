@@ -1,0 +1,36 @@
+version: "3.7"
+
+services:
+  app:
+    build: ./webapp/ruby
+    env_file: docker-compose.env
+    volumes: 
+      - ./webapp/ruby:/app
+    ports: 
+      - "8000:8000"
+    depends_on:
+      - db
+    command: bundle exec puma -C puma.rb
+
+  nginx:
+    image: nginx:latest
+    volumes: 
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./webapp/ruby/public:/var/www/
+    ports:
+      - "80:80"
+    depends_on:
+      - app
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "true"
+      MYSQL_DATABASE: "torb"
+      MYSQL_USER: "isucon"
+      MYSQL_PASSWORD: "isucon"
+    volumes:
+      - ./db/.data:/var/lib/mysql
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_bin
+    ports:
+      - "3306:3306"
