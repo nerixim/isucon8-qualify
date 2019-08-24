@@ -3,6 +3,7 @@ require 'sinatra/base'
 require 'erubi'
 require 'mysql2'
 require 'mysql2-cs-bind'
+require 'sinatra/activerecord'
 
 module Torb
   class ApplicationController < Sinatra::Base
@@ -15,6 +16,14 @@ module Torb
     set :sessions, key: 'torb_session', expire_after: 3600
     set :session_secret, 'tagomoris'
     set :protection, frame_options: :deny
+
+    register Sinatra::ActiveRecordExtension
+    set :database,
+        adapter: 'mysql2',
+        database: ENV['DB_DATABASE'],
+        username: ENV['DB_USER'],
+        password: ENV['DB_PASS'],
+        host: ENV['DB_HOST']
 
     set :erb, escape_html: true
 
@@ -56,21 +65,23 @@ module Torb
       def get_events(where = nil)
         where ||= ->(e) { e['public_fg'] }
 
-        db.query('BEGIN')
-        begin
-          event_ids = db.query('SELECT * FROM events ORDER BY id ASC').select(&where).map { |e| e['id'] }
-          events =
-            event_ids.map do |event_id|
-              event = get_event(event_id)
-              event['sheets'].each { |sheet| sheet.delete('detail') }
-              event
-            end
-          db.query('COMMIT')
-        rescue StandardError
-          db.query('ROLLBACK')
-        end
+        # db.query('BEGIN')
+        # begin
+        #   event_ids = db.query('SELECT * FROM events ORDER BY id ASC').select(&where).map { |e| e['id'] }
+        #   events =
+        #     event_ids.map do |event_id|
+        #       event = get_event(event_id)
+        #       event['sheets'].each { |sheet| sheet.delete('detail') }
+        #       event
+        #     end
+        #   db.query('COMMIT')
+        # rescue StandardError
+        #   db.query('ROLLBACK')
+        # end
 
-        events
+        # events
+        # TODO: WIP
+        Event.where.not(id: nil).order(id: 'ASC').map(&:attributes)
       end
 
       def get_event(event_id, login_user_id = nil)
@@ -126,7 +137,8 @@ module Torb
         user_id = session[:user_id]
         return unless user_id
 
-        db.xquery('SELECT id, nickname FROM users WHERE id = ?', user_id).first
+        # db.xquery('SELECT id, nickname FROM users WHERE id = ?', user_id).first
+        User.find(user_id).attributes
       end
 
       def get_login_administrator
